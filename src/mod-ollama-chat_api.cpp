@@ -19,64 +19,156 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
     return totalSize;
 }
 
-std::string ExtractTextBetweenDoubleQuotes(const std::string& response)
+// Function to handle OpenRouter.ai API errors based on HTTP status codes
+void HandleOpenRouterErrors(long response_code, const std::string& response_body)
 {
-    size_t first = response.find('\"');
-    size_t second = response.find('\"', first + 1);
-    if (first != std::string::npos && second != std::string::npos) {
-        return response.substr(first + 1, second - first - 1);
+    switch (response_code) {
+        case 400:
+            throw std::runtime_error("Bad Request: Invalid parameters - " + response_body);
+        case 401:
+            throw std::runtime_error("Unauthorized: Invalid API key - " + response_body);
+        case 402:
+            throw std::runtime_error("Payment Required: Account issue - " + response_body);
+        case 429:
+            throw std::runtime_error("Rate Limited: Too many requests - " + response_body);
+        default:
+            if (response_code >= 400) {
+                throw std::runtime_error("HTTP Error " + std::to_string(response_code) + " - " + response_body);
+            }
     }
-    return response;
 }
 
-// Function to perform the API call.
+// Function to construct OpenRouter.ai request format
+nlohmann::json ConstructOpenRouterRequest(const std::string& prompt)
+{
+    nlohmann::json request;
+    request["model"] = g_OpenRouterModel;
+    request["messages"] = nlohmann::json::array();
+    
+    // Add system message if system prompt is configured
+    if (!g_OpenRouterSystemPrompt.empty()) {
+        request["messages"].push_back({
+            {"role", "system"},
+            {"content", g_OpenRouterSystemPrompt}
+        });
+    }
+    
+    // Add user message
+    request["messages"].push_back({
+        {"role", "user"},
+        {"content", prompt}
+    });
+    
+    // Add optional parameters only if they differ from defaults
+    if (g_OpenRouterTemperature != 0.7f) {
+        request["temperature"] = g_OpenRouterTemperature;
+    }
+    if (g_OpenRouterTopP != 0.9f) {
+        request["top_p"] = g_OpenRouterTopP;
+    }
+    if (g_OpenRouterTopK > 0) {
+        request["top_k"] = g_OpenRouterTopK;
+    }
+    if (g_OpenRouterMaxTokens > 0) {
+        request["max_tokens"] = g_OpenRouterMaxTokens;
+    }
+    if (!g_OpenRouterSeed.empty()) {
+        try {
+            int seed_value = std::stoi(g_OpenRouterSeed);
+            request["seed"] = seed_value;
+        } catch (const std::exception& e) {
+            if (g_DebugEnabled) {
+                LOG_INFO("server.loading", "Invalid seed value, ignoring: {}", g_OpenRouterSeed);
+            }
+        }
+    }
+    
+    // Always set stream to false for this implementation
+    request["stream"] = false;
+    
+    return request;
+}
+
+// Function to parse OpenRouter.ai response format
+std::string ParseOpenRouterResponse(const std::string& response_json)
+{
+    try {
+        nlohmann::json response = nlohmann::json::parse(response_json);
+        
+        // Check for error in response
+        if (response.contains("error")) {
+            std::string error_msg = "API Error";
+            if (response["error"].contains("message")) {
+                error_msg = response["error"]["message"].get<std::string>();
+            }
+            throw std::runtime_error("OpenRouter API Error: " + error_msg);
+        }
+        
+        // Extract content from choices array
+        if (response.contains("choices") && !response["choices"].empty()) {
+            auto& choice = response["choices"][0];
+            if (choice.contains("message") && choice["message"].contains("content")) {
+                return choice["message"]["content"].get<std::string>();
+            }
+        }
+        
+        throw std::runtime_error("Invalid response format: missing choices or content");
+        
+    } catch (const nlohmann::json::parse_error& e) {
+        throw std::runtime_error("Failed to parse JSON response: " + std::string(e.what()));
+    }
+}
+
+// Updated function to perform the OpenRouter.ai API call
 std::string QueryOllamaAPI(const std::string& prompt)
 {
+    // Check if API key is configured
+    if (g_OpenRouterApiKey.empty()) {
+        if (g_DebugEnabled) {
+            LOG_INFO("server.loading", "OpenRouter API key not configured.");
+        }
+        return "AI service not properly configured.";
+    }
+    
     CURL* curl = curl_easy_init();
-    if (!curl)
-    {
-        if(g_DebugEnabled)
-        {
+    if (!curl) {
+        if (g_DebugEnabled) {
             LOG_INFO("server.loading", "Failed to initialize cURL.");
         }
         return "Hmm... I'm lost in thought.";
     }
 
-    std::string url   = g_OllamaUrl;
-    std::string model = g_OllamaModel;
-
-    nlohmann::json requestData = {
-        {"model",  model},
-        {"prompt", prompt}
-    };
-    // Only include if set (do not send defaults if user did not set them)
-    if (g_OllamaNumPredict > 0)          requestData["num_predict"]     = g_OllamaNumPredict;
-    if (g_OllamaTemperature != 0.8f)     requestData["temperature"]     = g_OllamaTemperature;
-    if (g_OllamaTopP != 0.95f)           requestData["top_p"]           = g_OllamaTopP;
-    if (g_OllamaRepeatPenalty != 1.1f)   requestData["repeat_penalty"]  = g_OllamaRepeatPenalty;
-    if (g_OllamaNumCtx > 0)              requestData["num_ctx"]         = g_OllamaNumCtx;
-    if (!g_OllamaStop.empty()) {
-        // If comma-separated, convert to array
-        std::vector<std::string> stopSeqs;
-        std::stringstream ss(g_OllamaStop);
-        std::string item;
-        while (std::getline(ss, item, ',')) {
-            // trim whitespace
-            size_t start = item.find_first_not_of(" \t");
-            size_t end = item.find_last_not_of(" \t");
-            if (start != std::string::npos && end != std::string::npos)
-                stopSeqs.push_back(item.substr(start, end - start + 1));
+    std::string url = g_OpenRouterUrl;
+    
+    // Construct request in OpenRouter.ai format
+    nlohmann::json requestData;
+    try {
+        requestData = ConstructOpenRouterRequest(prompt);
+    } catch (const std::exception& e) {
+        if (g_DebugEnabled) {
+            LOG_INFO("server.loading", "Failed to construct request: {}", e.what());
         }
-        if (!stopSeqs.empty())
-            requestData["stop"] = stopSeqs;
+        curl_easy_cleanup(curl);
+        return "Error preparing request.";
     }
-    if (!g_OllamaSystemPrompt.empty())   requestData["system"]          = g_OllamaSystemPrompt;
-    if (!g_OllamaSeed.empty())           requestData["seed"]            = g_OllamaSeed;
-
+    
     std::string requestDataStr = requestData.dump();
 
+    // Set up headers with authentication
     struct curl_slist* headers = nullptr;
+    std::string auth_header = "Authorization: Bearer " + g_OpenRouterApiKey;
+    headers = curl_slist_append(headers, auth_header.c_str());
     headers = curl_slist_append(headers, "Content-Type: application/json");
+    
+    // Optional headers for better tracking
+    if (!g_OpenRouterSiteUrl.empty()) {
+        std::string referer_header = "HTTP-Referer: " + g_OpenRouterSiteUrl;
+        headers = curl_slist_append(headers, referer_header.c_str());
+    }
+    if (!g_OpenRouterSiteName.empty()) {
+        std::string title_header = "X-Title: " + g_OpenRouterSiteName;
+        headers = curl_slist_append(headers, title_header.c_str());
+    }
 
     std::string responseBuffer;
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -86,63 +178,61 @@ std::string QueryOllamaAPI(const std::string& prompt)
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBuffer);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    
+    // Set timeout to prevent hanging
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
 
     CURLcode res = curl_easy_perform(curl);
+    
+    // Get HTTP response code
+    long response_code;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
 
-    if (res != CURLE_OK)
-    {
-        if(g_DebugEnabled)
-        {
+    if (res != CURLE_OK) {
+        if (g_DebugEnabled) {
             LOG_INFO("server.loading",
-                    "Failed to reach Ollama AI. cURL error: {}",
+                    "Failed to reach OpenRouter AI. cURL error: {}",
                     curl_easy_strerror(res));
         }
-        return "Failed to reach Ollama AI.";
+        return "Failed to reach OpenRouter AI.";
     }
 
-    std::stringstream ss(responseBuffer);
-    std::string line;
-    std::ostringstream extractedResponse;
-
-    try
-    {
-        while (std::getline(ss, line))
-        {
-            nlohmann::json jsonResponse = nlohmann::json::parse(line);
-            if (jsonResponse.contains("response"))
-                extractedResponse << jsonResponse["response"].get<std::string>();
+    // Handle HTTP errors
+    try {
+        HandleOpenRouterErrors(response_code, responseBuffer);
+    } catch (const std::exception& e) {
+        if (g_DebugEnabled) {
+            LOG_INFO("server.loading", "OpenRouter API Error: {}", e.what());
         }
+        return "AI service error occurred.";
     }
-    catch (const std::exception& e)
-    {
-        if(g_DebugEnabled)
-        {
-            LOG_INFO("server.loading",
-                    "JSON Parsing Error: {}",
-                    e.what());
+
+    // Parse the response
+    std::string botReply;
+    try {
+        botReply = ParseOpenRouterResponse(responseBuffer);
+    } catch (const std::exception& e) {
+        if (g_DebugEnabled) {
+            LOG_INFO("server.loading", "Response parsing error: {}", e.what());
         }
         return "Error processing response.";
     }
 
-    std::string botReply = extractedResponse.str();
-
-    botReply = ExtractTextBetweenDoubleQuotes(botReply);
-
-    if (botReply.empty())
-    {
-        if(g_DebugEnabled)
-        {
+    if (botReply.empty()) {
+        if (g_DebugEnabled) {
             LOG_INFO("server.loading", "No valid response extracted.");
         }
         return "I'm having trouble understanding.";
     }
 
-    if(g_DebugEnabled)
-    {
+    if (g_DebugEnabled) {
         LOG_INFO("server.loading", "Parsed bot response: {}", botReply);
     }
+    
     return botReply;
 }
 
