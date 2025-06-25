@@ -15,16 +15,19 @@ float      g_GeneralDistance   = 600.0f;
 uint32_t   g_PlayerReplyChance = 90;
 uint32_t   g_BotReplyChance    = 10;
 uint32_t   g_MaxBotsToPick     = 2;
-std::string g_OllamaUrl        = "http://localhost:11434/api/generate";
-std::string g_OllamaModel      = "llama3.2:1b";
-uint32_t g_OllamaNumPredict    = 40;
-float       g_OllamaTemperature = 0.8f;
-float       g_OllamaTopP = 0.95f;
-float       g_OllamaRepeatPenalty = 1.1f;
-uint32_t    g_OllamaNumCtx = 0;
-std::string g_OllamaStop = "";
-std::string g_OllamaSystemPrompt = "";
-std::string g_OllamaSeed = "";
+
+// OpenRouter.ai configuration variables (replacing Ollama variables)
+std::string g_OpenRouterApiKey        = "";
+std::string g_OpenRouterUrl           = "https://openrouter.ai/api/v1/chat/completions";
+std::string g_OpenRouterModel         = "meta-llama/llama-2-7b-chat";
+uint32_t    g_OpenRouterMaxTokens     = 150;
+float       g_OpenRouterTemperature   = 0.7f;
+float       g_OpenRouterTopP          = 0.9f;
+uint32_t    g_OpenRouterTopK          = 0;
+std::string g_OpenRouterSystemPrompt  = "";
+std::string g_OpenRouterSeed          = "";
+std::string g_OpenRouterSiteUrl       = "";
+std::string g_OpenRouterSiteName      = "";
 
 uint32_t    g_MaxConcurrentQueries = 0;
 
@@ -112,7 +115,7 @@ static void LoadBotPersonalityList()
     QueryResult tableExists = CharacterDatabase.Query("SELECT * FROM information_schema.tables WHERE table_schema = 'acore_characters' AND table_name = 'mod_ollama_chat_personality' LIMIT 1");
     if (!tableExists)
     {
-        LOG_ERROR("server.loading", "[Ollama Chat] Please source the required database table first");
+        LOG_ERROR("server.loading", "[OpenRouter Chat] Please source the required database table first");
         return;
     }
 
@@ -129,7 +132,7 @@ static void LoadBotPersonalityList()
 
     if(g_DebugEnabled)
     {
-        LOG_INFO("server.loading", "[Ollama Chat] Fetching Bot Personality List into array");
+        LOG_INFO("server.loading", "[OpenRouter Chat] Fetching Bot Personality List into array");
     }
 
     do
@@ -186,16 +189,19 @@ void LoadOllamaChatConfig()
     g_PlayerReplyChance               = sConfigMgr->GetOption<uint32_t>("OllamaChat.PlayerReplyChance", 90);
     g_BotReplyChance                  = sConfigMgr->GetOption<uint32_t>("OllamaChat.BotReplyChance", 10);
     g_MaxBotsToPick                   = sConfigMgr->GetOption<uint32_t>("OllamaChat.MaxBotsToPick", 2);
-    g_OllamaUrl                       = sConfigMgr->GetOption<std::string>("OllamaChat.Url", "http://localhost:11434/api/generate");
-    g_OllamaModel                     = sConfigMgr->GetOption<std::string>("OllamaChat.Model", "llama3.2:1b");
-    g_OllamaNumPredict                = sConfigMgr->GetOption<uint32_t>("OllamaChat.NumPredict", 40);
-    g_OllamaTemperature               = sConfigMgr->GetOption<float>("OllamaChat.Temperature", 0.8f);
-    g_OllamaTopP                      = sConfigMgr->GetOption<float>("OllamaChat.TopP", 0.95f);
-    g_OllamaRepeatPenalty             = sConfigMgr->GetOption<float>("OllamaChat.RepeatPenalty", 1.1f);
-    g_OllamaNumCtx                    = sConfigMgr->GetOption<uint32_t>("OllamaChat.NumCtx", 0);
-    g_OllamaStop                      = sConfigMgr->GetOption<std::string>("OllamaChat.Stop", "");
-    g_OllamaSystemPrompt              = sConfigMgr->GetOption<std::string>("OllamaChat.SystemPrompt", "");
-    g_OllamaSeed                      = sConfigMgr->GetOption<std::string>("OllamaChat.Seed", "");
+    
+    // OpenRouter.ai configuration (replacing Ollama configuration)
+    g_OpenRouterApiKey                = sConfigMgr->GetOption<std::string>("OllamaChat.OpenRouterApiKey", "");
+    g_OpenRouterUrl                   = sConfigMgr->GetOption<std::string>("OllamaChat.OpenRouterUrl", "https://openrouter.ai/api/v1/chat/completions");
+    g_OpenRouterModel                 = sConfigMgr->GetOption<std::string>("OllamaChat.OpenRouterModel", "meta-llama/llama-2-7b-chat");
+    g_OpenRouterMaxTokens             = sConfigMgr->GetOption<uint32_t>("OllamaChat.OpenRouterMaxTokens", 150);
+    g_OpenRouterTemperature           = sConfigMgr->GetOption<float>("OllamaChat.OpenRouterTemperature", 0.7f);
+    g_OpenRouterTopP                  = sConfigMgr->GetOption<float>("OllamaChat.OpenRouterTopP", 0.9f);
+    g_OpenRouterTopK                  = sConfigMgr->GetOption<uint32_t>("OllamaChat.OpenRouterTopK", 0);
+    g_OpenRouterSystemPrompt          = sConfigMgr->GetOption<std::string>("OllamaChat.OpenRouterSystemPrompt", "");
+    g_OpenRouterSeed                  = sConfigMgr->GetOption<std::string>("OllamaChat.OpenRouterSeed", "");
+    g_OpenRouterSiteUrl               = sConfigMgr->GetOption<std::string>("OllamaChat.OpenRouterSiteUrl", "");
+    g_OpenRouterSiteName              = sConfigMgr->GetOption<std::string>("OllamaChat.OpenRouterSiteName", "");
 
     g_MaxConcurrentQueries            = sConfigMgr->GetOption<uint32_t>("OllamaChat.MaxConcurrentQueries", 0);
 
@@ -293,11 +299,11 @@ void LoadOllamaChatConfig()
     LOG_INFO("server.loading",
              "[mod-ollama-chat] Config loaded: Enabled = {}, SayDistance = {}, YellDistance = {}, "
              "GeneralDistance = {}, PlayerReplyChance = {}%, BotReplyChance = {}%, MaxBotsToPick = {}, "
-             "Url = {}, Model = {}, MaxConcurrentQueries = {}, EnableRandomChatter = {}, MinRandInt = {}, MaxRandInt = {}, RandomChatterRealPlayerDistance = {}, "
+             "OpenRouterUrl = {}, OpenRouterModel = {}, MaxConcurrentQueries = {}, EnableRandomChatter = {}, MinRandInt = {}, MaxRandInt = {}, RandomChatterRealPlayerDistance = {}, "
              "RandomChatterBotCommentChance = {}. MaxConcurrentQueries = {}. Extra blacklist commands: {}",
              g_Enable, g_SayDistance, g_YellDistance, g_GeneralDistance,
              g_PlayerReplyChance, g_BotReplyChance, g_MaxBotsToPick,
-             g_OllamaUrl, g_OllamaModel, g_MaxConcurrentQueries,
+             g_OpenRouterUrl, g_OpenRouterModel, g_MaxConcurrentQueries,
              g_EnableRandomChatter, g_MinRandomInterval, g_MaxRandomInterval, g_RandomChatterRealPlayerDistance,
              g_RandomChatterBotCommentChance, g_MaxConcurrentQueries, extraBlacklist);
 }
@@ -310,7 +316,7 @@ void LoadPersonalityTemplatesFromDB()
     QueryResult result = CharacterDatabase.Query("SELECT `key`, `prompt` FROM `mod_ollama_chat_personality_templates`");
     if (!result)
     {
-        LOG_ERROR("server.loading", "[Ollama Chat] No personality templates found in the database!");
+        LOG_ERROR("server.loading", "[OpenRouter Chat] No personality templates found in the database!");
         return;
     }
 
