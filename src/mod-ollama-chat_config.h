@@ -12,16 +12,19 @@ extern float            g_GeneralDistance;
 extern uint32_t         g_PlayerReplyChance;
 extern uint32_t         g_BotReplyChance;
 extern uint32_t         g_MaxBotsToPick;
-extern std::string      g_OllamaUrl;
-extern std::string      g_OllamaModel;
-extern uint32_t         g_OllamaNumPredict;
-extern float            g_OllamaTemperature;
-extern float            g_OllamaTopP;
-extern float            g_OllamaRepeatPenalty;
-extern uint32_t         g_OllamaNumCtx;
-extern std::string      g_OllamaStop;
-extern std::string      g_OllamaSystemPrompt;
-extern std::string      g_OllamaSeed;
+
+// OpenRouter.ai configuration variables (replacing Ollama variables)
+extern std::string      g_OpenRouterApiKey;
+extern std::string      g_OpenRouterUrl;
+extern std::string      g_OpenRouterModel;
+extern uint32_t         g_OpenRouterMaxTokens;
+extern float            g_OpenRouterTemperature;
+extern float            g_OpenRouterTopP;
+extern uint32_t         g_OpenRouterTopK;
+extern std::string      g_OpenRouterSystemPrompt;
+extern std::string      g_OpenRouterSeed;
+extern std::string      g_OpenRouterSiteUrl;
+extern std::string      g_OpenRouterSiteName;
 
 extern uint32_t         g_MaxConcurrentQueries;
 
