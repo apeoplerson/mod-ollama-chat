@@ -36,15 +36,19 @@ OllamaChat.OpenRouterUrl = "https://openrouter.ai/docs/api-reference/chat-comple
 
 #
 #    OllamaChat.OpenRouterModel
-#        Description: AI model to use from OpenRouter.ai
+#        Description: AI model to use from OpenRouter.ai PAID
 #        Default:     "meta-llama/llama-2-7b-chat"
 #        Examples:    "openai/gpt-3.5-turbo"
 #                     "anthropic/claude-3-sonnet"
 #                     "google/gemma-7b-it"
 #                     "mistralai/mistral-7b-instruct"
 #
+#      Description: AI model to use from OpenRouter.ai FREE (More to come for the free. This is the only one I tested)
+#      Default: mistralai/mistral-7b-instruct:free
+#      Examples: mistralai/mistral-7b-instruct:free
+#
 
-OllamaChat.OpenRouterModel = "meta-llama/llama-2-7b-chat"
+OllamaChat.OpenRouterModel = "mistralai/mistral-7b-instruct:free"
 
 #
 #    OllamaChat.OpenRouterMaxTokens
