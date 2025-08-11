@@ -1,7 +1,7 @@
-#include "mod-ollama-chat_random.h"
-#include "mod-ollama-chat_config.h"
-#include "mod-ollama-chat_handler.h"
-#include "mod-ollama-chat_sentiment.h"
+#include "LMStudioChat_random.h"
+#include "LMStudioChat_config.h"
+#include "LMStudioChat_handler.h"
+#include "LMStudioChat_sentiment.h"
 #include "Log.h"
 #include "Player.h"
 #include "PlayerbotAI.h"
@@ -9,9 +9,9 @@
 #include "ObjectAccessor.h"
 #include "Chat.h"
 #include "fmt/core.h"
-#include "mod-ollama-chat_api.h"
-#include "mod-ollama-chat_personality.h"
-#include "mod-ollama-chat-utilities.h"
+#include "LMStudioChat_api.h"
+#include "LMStudioChat_personality.h"
+#include "LMStudioChat_utilities.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
 #include "Map.h"
@@ -28,11 +28,11 @@
 #include "ObjectMgr.h"
 #include "QuestDef.h"
 
-OllamaBotRandomChatter::OllamaBotRandomChatter() : WorldScript("OllamaBotRandomChatter") {}
+LMStudioBotRandomChatter::LMStudioBotRandomChatter() : WorldScript("LMStudioBotRandomChatter") {}
 
 std::unordered_map<uint64_t, time_t> nextRandomChatTime;
 
-void OllamaBotRandomChatter::OnUpdate(uint32 diff)
+void LMStudioBotRandomChatter::OnUpdate(uint32 diff)
 {
     if (!g_Enable || !g_EnableRandomChatter)
         return;
@@ -70,7 +70,7 @@ void OllamaBotRandomChatter::OnUpdate(uint32 diff)
     }
 }
 
-void OllamaBotRandomChatter::HandleRandomChatter()
+void LMStudioBotRandomChatter::HandleRandomChatter()
 {
     auto const& allPlayers = ObjectAccessor::GetPlayers();
 
@@ -556,7 +556,7 @@ void OllamaBotRandomChatter::HandleRandomChatter()
 
             if(g_DebugEnabled)
             {
-                LOG_INFO("server.loading", "[Ollama Chat] Random Message Prompt: {} ", prompt);
+                LOG_INFO("server.loading", "[LMStudio Chat] Random Message Prompt: {} ", prompt);
             }
 
             uint64_t botGuid = bot->GetGUID().GetRawValue();
@@ -565,7 +565,7 @@ void OllamaBotRandomChatter::HandleRandomChatter()
                 try {
                     Player* botPtr = ObjectAccessor::FindPlayer(ObjectGuid(botGuid));
                     if (!botPtr) return;
-                    std::string response = QueryOllamaAPI(prompt);
+                    std::string response = QueryLMStudioAPI(prompt);
                     if (response.empty()) return;
                     botPtr = ObjectAccessor::FindPlayer(ObjectGuid(botGuid));
                     if (!botPtr) return;
@@ -605,15 +605,15 @@ void OllamaBotRandomChatter::HandleRandomChatter()
                             
                             if (selectedChannel == "Guild" || IsaGuildComment) {
                                 if (g_DebugEnabled)
-                                    LOG_INFO("server.loading", "[Ollama Chat] Bot Random Chatter Guild: {}", response);
+                                    LOG_INFO("server.loading", "[LMStudio Chat] Bot Random Chatter Guild: {}", response);
                                 botAI->SayToGuild(response);
                             } else if (selectedChannel == "Say") {
                                 if (g_DebugEnabled)
-                                    LOG_INFO("server.loading", "[Ollama Chat] Bot Random Chatter Say: {}", response);
+                                    LOG_INFO("server.loading", "[LMStudio Chat] Bot Random Chatter Say: {}", response);
                                 botAI->Say(response);
                             } else if (selectedChannel == "General") {
                                 if (g_DebugEnabled)
-                                    LOG_INFO("server.loading", "[Ollama Chat] Bot Random Chatter General: {}", response);
+                                    LOG_INFO("server.loading", "[LMStudio Chat] Bot Random Chatter General: {}", response);
                                 botAI->SayToChannel(response, ChatChannelId::GENERAL);
                             }
                         }
@@ -626,18 +626,18 @@ void OllamaBotRandomChatter::HandleRandomChatter()
                         std::string selectedChannel = channels[dist(gen)];
                         if (selectedChannel == "Say") {
                             if (g_DebugEnabled)
-                                LOG_INFO("server.loading", "[Ollama Chat] Bot Random Chatter Say: {}", response);
+                                LOG_INFO("server.loading", "[LMStudio Chat] Bot Random Chatter Say: {}", response);
                             botAI->Say(response);
                         } else if (selectedChannel == "General") {
                             if (g_DebugEnabled)
-                                LOG_INFO("server.loading", "[Ollama Chat] Bot Random Chatter General: {}", response);
+                                LOG_INFO("server.loading", "[LMStudio Chat] Bot Random Chatter General: {}", response);
                             botAI->SayToChannel(response, ChatChannelId::GENERAL);
                         }
                     }
                 } catch (const std::exception& e) {
-                    LOG_ERROR("server.loading", "[Ollama Chat] Exception in random chatter thread: {}", e.what());
+                    LOG_ERROR("server.loading", "[LMStudio Chat] Exception in random chatter thread: {}", e.what());
                 } catch (...) {
-                    LOG_ERROR("server.loading", "[Ollama Chat] Unknown exception in random chatter thread");
+                    LOG_ERROR("server.loading", "[LMStudio Chat] Unknown exception in random chatter thread");
                 }
             }).detach();
 

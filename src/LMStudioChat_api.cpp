@@ -1,6 +1,6 @@
-#include "mod-ollama-chat_api.h"
-#include "mod-ollama-chat_config.h"
-#include "mod-ollama-chat_httpclient.h"
+#include "LMStudioChat_api.h"
+#include "LMStudioChat_config.h"
+#include "LMStudioChat_httpclient.h"
 #include "Log.h"
 #include <sstream>
 #include <nlohmann/json.hpp>
@@ -21,22 +21,22 @@ std::string ExtractTextBetweenDoubleQuotes(const std::string& response)
 }
 
 // Function to perform the API call.
-std::string QueryOllamaAPI(const std::string& prompt)
+std::string QueryLMStudioAPI(const std::string& prompt)
 {
     // Initialize our custom HTTP client
-    static OllamaHttpClient httpClient;
+    static LMStudioHttpClient httpClient;
     
     if (!httpClient.IsAvailable())
     {
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] HTTP client not available.");
+            LOG_INFO("server.loading", "[LMStudio Chat] HTTP client not available.");
         }
         return "Hmm... I'm lost in thought.";
     }
 
-    std::string url   = g_OllamaUrl;
-    std::string model = g_OllamaModel;
+    std::string url   = g_LMStudioUrl;
+    std::string model = g_LMStudioModel;
 
     nlohmann::json requestData = {
         {"model",  model},
@@ -49,43 +49,43 @@ std::string QueryOllamaAPI(const std::string& prompt)
     bool hasOptions = false;
 
     // Only include if set (do not send defaults if user did not set them)
-    if (g_OllamaNumPredict > 0) {
-        options["num_predict"] = g_OllamaNumPredict;
+    if (g_LMStudioMaxTokens > 0) {
+        options["num_predict"] = g_LMStudioMaxTokens;
         hasOptions = true;
     }
-    if (g_OllamaTemperature != 0.8f) {
-        options["temperature"] = g_OllamaTemperature;
+    if (g_LMStudioTemperature != 0.8f) {
+        options["temperature"] = g_LMStudioTemperature;
         hasOptions = true;
     }
-    if (g_OllamaTopP != 0.95f) {
-        options["top_p"] = g_OllamaTopP;
+    if (g_LMStudioTopP != 0.95f) {
+        options["top_p"] = g_LMStudioTopP;
         hasOptions = true;
     }
-    if (g_OllamaRepeatPenalty != 1.1f) {
-        options["repeat_penalty"] = g_OllamaRepeatPenalty;
+    if (g_LMStudioRepeatPenalty != 1.1f) {
+        options["repeat_penalty"] = g_LMStudioRepeatPenalty;
         hasOptions = true;
     }
-    if (g_OllamaNumCtx > 0) {
-        options["num_ctx"] = g_OllamaNumCtx;
+    if (g_LMStudioContextSize > 0) {
+        options["num_ctx"] = g_LMStudioContextSize;
         hasOptions = true;
     }
-    if (g_OllamaNumThreads > 0) {
-        options["num_thread"] = g_OllamaNumThreads;
+    if (g_LMStudioNumThreads > 0) {
+        options["num_thread"] = g_LMStudioNumThreads;
         hasOptions = true;
         if(g_DebugEnabled) {
-            //LOG_INFO("server.loading", "[Ollama Chat] Setting num_thread to: {}", g_OllamaNumThreads);
+            //LOG_INFO("server.loading", "[LMStudio Chat] Setting num_thread to: {}", g_LMStudioNumThreads);
         }
     } else if(g_DebugEnabled) {
-        //LOG_INFO("server.loading", "[Ollama Chat] g_OllamaNumThreads is: {} (not sending num_thread)", g_OllamaNumThreads);
+        //LOG_INFO("server.loading", "[LMStudio Chat] g_LMStudioNumThreads is: {} (not sending num_thread)", g_LMStudioNumThreads);
     }
-    if (!g_OllamaSeed.empty()) {
+    if (!g_LMStudioSeed.empty()) {
         try {
-            int seedValue = std::stoi(g_OllamaSeed);
+            int seedValue = std::stoi(g_LMStudioSeed);
             options["seed"] = seedValue; 
             hasOptions = true;
         } catch (const std::exception& e) {
             if(g_DebugEnabled) {
-                LOG_INFO("server.loading", "[Ollama Chat] Invalid seed value: {}", g_OllamaSeed);
+                LOG_INFO("server.loading", "[LMStudio Chat] Invalid seed value: {}", g_LMStudioSeed);
             }
         }
     }
@@ -96,10 +96,10 @@ std::string QueryOllamaAPI(const std::string& prompt)
     }
 
     // Root-level parameters (these stay at root level)
-    if (!g_OllamaStop.empty()) {
+    if (!g_LMStudioStop.empty()) {
         // If comma-separated, convert to array
         std::vector<std::string> stopSeqs;
-        std::stringstream ss(g_OllamaStop);
+        std::stringstream ss(g_LMStudioStop);
         std::string item;
         while (std::getline(ss, item, ',')) {
             // trim whitespace
@@ -111,13 +111,13 @@ std::string QueryOllamaAPI(const std::string& prompt)
         if (!stopSeqs.empty())
             requestData["stop"] = stopSeqs;
     }
-    if (!g_OllamaSystemPrompt.empty())   requestData["system"]          = g_OllamaSystemPrompt;
+    if (!g_LMStudioSystemPrompt.empty())   requestData["system"]          = g_LMStudioSystemPrompt;
 
     if (g_ThinkModeEnableForModule)
     {
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] LLM set to Think mode.");
+            LOG_INFO("server.loading", "[LMStudio Chat] LLM set to Think mode.");
         }
         requestData["think"] = true;
         requestData["hidethinking"] = true;
@@ -132,9 +132,9 @@ std::string QueryOllamaAPI(const std::string& prompt)
     {
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Failed to reach Ollama AI.");
+            LOG_INFO("server.loading", "[LMStudio Chat] Failed to reach LMStudio API.");
         }
-        return "Failed to reach Ollama AI.";
+        return "Failed to reach LMStudio API.";
     }
 
     std::stringstream ss(responseBuffer);
@@ -161,7 +161,7 @@ std::string QueryOllamaAPI(const std::string& prompt)
         if(g_DebugEnabled)
         {
             LOG_INFO("server.loading",
-                    "[Ollama Chat] JSON Parsing Error: {}",
+                    "[LMStudio Chat] JSON Parsing Error: {}",
                     e.what());
         }
         return "Error processing response.";
@@ -175,20 +175,20 @@ std::string QueryOllamaAPI(const std::string& prompt)
     {
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] No valid response extracted.");
+            LOG_INFO("server.loading", "[LMStudio Chat] No valid response extracted.");
         }
         return "I'm having trouble understanding.";
     }
 
     if(g_DebugEnabled)
     {
-        LOG_INFO("server.loading", "[Ollama Chat] Parsed bot response: {}", botReply);
+        LOG_INFO("server.loading", "[LMStudio Chat] Parsed bot response: {}", botReply);
 
         if (g_ThinkModeEnableForModule)
         {
             if(g_DebugEnabled)
             {
-                LOG_INFO("server.loading", "[Ollama Chat] Bot used think.");
+                LOG_INFO("server.loading", "[LMStudio Chat] Bot used think.");
             }
         }
     }

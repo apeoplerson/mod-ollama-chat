@@ -1,10 +1,10 @@
-#include "mod-ollama-chat_events.h"
-#include "mod-ollama-chat_config.h"
-#include "mod-ollama-chat_random.h"
-#include "mod-ollama-chat_api.h"
-#include "mod-ollama-chat-utilities.h"
-#include "mod-ollama-chat_personality.h"
-#include "mod-ollama-chat_sentiment.h"
+#include "LMStudioChat_events.h"
+#include "LMStudioChat_config.h"
+#include "LMStudioChat_random.h"
+#include "LMStudioChat_api.h"
+#include "LMStudioChat_utilities.h"
+#include "LMStudioChat_personality.h"
+#include "LMStudioChat_sentiment.h"
 #include "Player.h"
 #include "ObjectAccessor.h"
 #include "Guild.h"
@@ -19,9 +19,9 @@
 #include <random>
 #include <fmt/core.h>
 
-static OllamaBotEventChatter eventChatter;
+static LMStudioBotEventChatter eventChatter;
 
-void OllamaBotEventChatter::DispatchGameEvent(Player* source, std::string type, std::string detail)
+void LMStudioBotEventChatter::DispatchGameEvent(Player* source, std::string type, std::string detail)
 {
     if (!g_Enable || !g_EnableEventChatter)
         return;
@@ -75,13 +75,13 @@ void OllamaBotEventChatter::DispatchGameEvent(Player* source, std::string type, 
     {
         if (g_DebugEnabled)
         {
-            //LOG_INFO("server.loading", "[OllamaChat] Skipping bot source {} - no real players nearby", source->GetName());
+            //LOG_INFO("server.loading", "[LMStudioChat] Skipping bot source {} - no real players nearby", source->GetName());
         }
         return;
     }
 
     if (g_DebugEnabled)
-        LOG_INFO("server.loading", "[OllamaChat] DispatchGameEvent from {} | type={} | detail={}", source->GetName(), type, detail);
+        LOG_INFO("server.loading", "[LMStudioChat] DispatchGameEvent from {} | type={} | detail={}", source->GetName(), type, detail);
 
     float maxDist = g_EventChatterRealPlayerDistance;
     bool disableInCombat = g_DisableRepliesInCombat;
@@ -136,7 +136,7 @@ void OllamaBotEventChatter::DispatchGameEvent(Player* source, std::string type, 
             if (player->IsWithinDist(source, maxDist, false)) {
                 candidateBots.push_back(player);
                 if (g_DebugEnabled)
-                    LOG_INFO("server.loading", "[OllamaChat] Nearby player {} within {:.1f} yards", player->GetName(), maxDist);
+                    LOG_INFO("server.loading", "[LMStudioChat] Nearby player {} within {:.1f} yards", player->GetName(), maxDist);
             }
         }
     }
@@ -148,13 +148,13 @@ void OllamaBotEventChatter::DispatchGameEvent(Player* source, std::string type, 
         PlayerbotAI* ai = sPlayerbotsMgr->GetPlayerbotAI(bot);
         if (!ai) {
             if (g_DebugEnabled)
-                LOG_INFO("server.loading", "[OllamaChat] Skipping {} - not a bot", bot->GetName());
+                LOG_INFO("server.loading", "[LMStudioChat] Skipping {} - not a bot", bot->GetName());
             continue;
         }
 
         if (disableInCombat && bot->IsInCombat()) {
             if (g_DebugEnabled)
-                LOG_INFO("server.loading", "[OllamaChat] Skipping {} - in combat", bot->GetName());
+                LOG_INFO("server.loading", "[LMStudioChat] Skipping {} - in combat", bot->GetName());
             continue;
         }
 
@@ -174,12 +174,12 @@ void OllamaBotEventChatter::DispatchGameEvent(Player* source, std::string type, 
 
         if (urand(1, 100) > chance) {
             if (g_DebugEnabled)
-                LOG_INFO("server.loading", "[OllamaChat] Skipping {} - failed chance roll", bot->GetName());
+                LOG_INFO("server.loading", "[LMStudioChat] Skipping {} - failed chance roll", bot->GetName());
             continue;
         }
 
         if (g_DebugEnabled)
-            LOG_INFO("server.loading", "[OllamaChat] Queueing event for bot {}", bot->GetName());
+            LOG_INFO("server.loading", "[LMStudioChat] Queueing event for bot {}", bot->GetName());
 
         QueueEvent(bot, type, detail, source->GetName(), isGuildEvent);
 
@@ -190,11 +190,11 @@ void OllamaBotEventChatter::DispatchGameEvent(Player* source, std::string type, 
     }
 
     if (g_DebugEnabled)
-        LOG_INFO("server.loading", "[OllamaChat] Dispatch complete. {} bots responded", responses);
+        LOG_INFO("server.loading", "[LMStudioChat] Dispatch complete. {} bots responded", responses);
 }
 
 
-void OllamaBotEventChatter::QueueEvent(Player* bot, std::string type, std::string detail, std::string actorName, bool isGuildEvent)
+void LMStudioBotEventChatter::QueueEvent(Player* bot, std::string type, std::string detail, std::string actorName, bool isGuildEvent)
 {
     if (!g_Enable || !g_EnableEventChatter || !bot)
         return;
@@ -211,7 +211,7 @@ void OllamaBotEventChatter::QueueEvent(Player* bot, std::string type, std::strin
             std::string prompt = BuildPrompt(botPtr, g_EventChatterPromptTemplate, type, detail, actorName);
             if (prompt.empty()) return;
 
-            std::string response = QueryOllamaAPI(prompt);
+            std::string response = QueryLMStudioAPI(prompt);
             if (response.empty()) return;
 
             // reacquire pointers before use
@@ -229,13 +229,13 @@ void OllamaBotEventChatter::QueueEvent(Player* bot, std::string type, std::strin
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR("server.loading", "[OllamaChat] Exception in QueueEvent thread: {}", e.what());
+            LOG_ERROR("server.loading", "[LMStudioChat] Exception in QueueEvent thread: {}", e.what());
         }
     }).detach();
 }
 
 
-std::string OllamaBotEventChatter::BuildPrompt(Player* bot, std::string promptTemplate, std::string eventType, std::string eventDetail, std::string actorName)
+std::string LMStudioBotEventChatter::BuildPrompt(Player* bot, std::string promptTemplate, std::string eventType, std::string eventDetail, std::string actorName)
 {
     if (!bot) return "";
 

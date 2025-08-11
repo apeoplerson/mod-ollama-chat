@@ -1,8 +1,8 @@
-#include "mod-ollama-chat_personality.h"
+#include "LMStudioChat_personality.h"
 #include "Player.h"
 #include "PlayerbotMgr.h"
 #include "Log.h"
-#include "mod-ollama-chat_config.h"
+#include "LMStudioChat_config.h"
 #include <random>
 
 // Internal personality map
@@ -16,7 +16,7 @@ std::string GetBotPersonality(Player* bot)
     {
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Using existing personality '{}' for bot {}", it->second, bot->GetName());
+            LOG_INFO("server.loading", "[LMStudio Chat] Using existing personality '{}' for bot {}", it->second, bot->GetName());
         }
         return it->second;
     }
@@ -43,7 +43,7 @@ std::string GetBotPersonality(Player* bot)
 
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Using database personality '{}' for bot {}", dbPersonality, bot->GetName());
+            LOG_INFO("server.loading", "[LMStudio Chat] Using database personality '{}' for bot {}", dbPersonality, bot->GetName());
         }
         return dbPersonality;
     }
@@ -55,19 +55,19 @@ std::string GetBotPersonality(Player* bot)
 
     // Save to database if schema supports string (recommend TEXT or VARCHAR column for personality)
     QueryResult tableExists = CharacterDatabase.Query(
-        "SELECT * FROM information_schema.tables WHERE table_schema = 'acore_characters' AND table_name = 'mod_ollama_chat_personality' LIMIT 1;");
+        "SELECT * FROM information_schema.tables WHERE table_schema = 'acore_characters' AND table_name = 'LMStudioChat_personality' LIMIT 1;");
     if (!tableExists)
     {
-        LOG_INFO("server.loading", "[Ollama Chat] Please source the required database table first");
+        LOG_INFO("server.loading", "[LMStudio Chat] Please source the required database table first");
     }
     else
     {
-        CharacterDatabase.Execute("INSERT INTO mod_ollama_chat_personality (guid, personality) VALUES ({}, '{}')", botGuid, chosenPersonality);
+        CharacterDatabase.Execute("INSERT INTO LMStudioChat_personality (guid, personality) VALUES ({}, '{}')", botGuid, chosenPersonality);
     }
 
     if(g_DebugEnabled)
     {
-        LOG_INFO("server.loading", "[Ollama Chat] Assigned new personality '{}' to bot {}", chosenPersonality, bot->GetName());
+        LOG_INFO("server.loading", "[LMStudio Chat] Assigned new personality '{}' to bot {}", chosenPersonality, bot->GetName());
     }
     return chosenPersonality;
 }

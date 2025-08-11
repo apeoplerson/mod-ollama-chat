@@ -1,6 +1,6 @@
 # Bot-Player Sentiment Tracking System
 
-This document describes the new sentiment tracking system implemented in mod-ollama-chat, which allows bots to develop persistent relationships with players based on their interactions.
+This document describes the new sentiment tracking system implemented in mod-lmstudio-chat, which allows bots to develop persistent relationships with players based on their interactions.
 
 ## Overview
 
@@ -29,10 +29,10 @@ The sentiment tracking system enables bots to remember how players treat them ov
 
 ## Database Schema
 
-The system creates a new table: `mod_ollama_chat_bot_player_sentiments`
+The system creates a new table: `LMStudioChatBotPlayerSentiments`
 
 ```sql
-CREATE TABLE IF NOT EXISTS mod_ollama_chat_bot_player_sentiments (
+CREATE TABLE IF NOT EXISTS LMStudioChatBotPlayerSentiments (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     bot_guid BIGINT UNSIGNED NOT NULL,
     player_guid BIGINT UNSIGNED NOT NULL,
@@ -45,26 +45,26 @@ CREATE TABLE IF NOT EXISTS mod_ollama_chat_bot_player_sentiments (
 
 ## Configuration
 
-Add these settings to your `mod_ollama_chat.conf` file:
+Add these settings to your `LMStudioChat.conf` file:
 
 ```ini
 # Enable sentiment tracking (default: 1)
-OllamaChat.EnableSentimentTracking = 1
+LMStudioChat.EnableSentimentTracking = 1
 
 # Default sentiment for new relationships (default: 0.5)
-OllamaChat.SentimentDefaultValue = 0.5
+LMStudioChat.SentimentDefaultValue = 0.5
 
 # How much to adjust sentiment per message (default: 0.1)
-OllamaChat.SentimentAdjustmentStrength = 0.1
+LMStudioChat.SentimentAdjustmentStrength = 0.1
 
 # How often to save sentiment data in minutes (default: 10)
-OllamaChat.SentimentSaveInterval = 10
+LMStudioChat.SentimentSaveInterval = 10
 
 # Prompt for sentiment analysis
-OllamaChat.SentimentAnalysisPrompt = "Analyze the sentiment of this message: \"{message}\". Respond only with: POSITIVE, NEGATIVE, or NEUTRAL."
+LMStudioChat.SentimentAnalysisPrompt = "Analyze the sentiment of this message: \"{message}\". Respond only with: POSITIVE, NEGATIVE, or NEUTRAL."
 
 # Template for including sentiment in bot prompts
-OllamaChat.SentimentPromptTemplate = "Your relationship sentiment with {player_name} is {sentiment_value} (0.0=hostile, 0.5=neutral, 1.0=friendly). Use this to guide your tone and response."
+LMStudioChat.SentimentPromptTemplate = "Your relationship sentiment with {player_name} is {sentiment_value} (0.0=hostile, 0.5=neutral, 1.0=friendly). Use this to guide your tone and response."
 ```
 
 ### Important: Update Your Prompt Templates
@@ -73,10 +73,10 @@ Make sure your chat and event prompt templates include the `{sentiment_info}` pl
 
 ```ini
 # Example chat template with sentiment
-OllamaChat.ChatPromptTemplate = "You are {bot_name}, a {bot_class} bot. {bot_personality} {sentiment_info} Player {player_name} says: {player_message}"
+LMStudioChat.ChatPromptTemplate = "You are {bot_name}, a {bot_class} bot. {bot_personality} {sentiment_info} Player {player_name} says: {player_message}"
 
 # Example event template with sentiment  
-OllamaChat.EventChatterPromptTemplate = "You are {bot_name}, a {bot_class} bot. {bot_personality} {sentiment_info} React to this event: {event_type} involving {actor_name}"
+LMStudioChat.EventChatterPromptTemplate = "You are {bot_name}, a {bot_class} bot. {bot_personality} {sentiment_info} React to this event: {event_type} involving {actor_name}"
 ```
 
 ## Admin Commands
@@ -85,7 +85,7 @@ The system provides several admin commands for managing sentiment data:
 
 ### View Sentiment Data
 ```
-.ollama sentiment view [botname] [playername]
+.lmstudio sentiment view [botname] [playername]
 ```
 - No arguments: Shows all sentiment data
 - Bot name only: Shows all sentiments for that bot
@@ -94,14 +94,14 @@ The system provides several admin commands for managing sentiment data:
 
 ### Set Sentiment Value
 ```
-.ollama sentiment set <botname> <playername> <value>
+.lmstudio sentiment set <botname> <playername> <value>
 ```
 - Manually sets sentiment between a bot and player
 - Value must be between 0.0 and 1.0
 
 ### Reset Sentiment Data
 ```
-.ollama sentiment reset [botname] [playername]
+.lmstudio sentiment reset [botname] [playername]
 ```
 - No arguments: Resets ALL sentiment data
 - Bot name only: Resets all sentiments for that bot
@@ -167,14 +167,14 @@ The system provides several admin commands for managing sentiment data:
 ## Troubleshooting
 
 ### Sentiment Not Updating
-1. Check that `OllamaChat.EnableSentimentTracking = 1`
+1. Check that `LMStudioChat.EnableSentimentTracking = 1`
 2. Verify your LLM is responding correctly to sentiment analysis prompts
 3. Check server logs for sentiment analysis debug messages
 4. Ensure your chat templates include `{sentiment_info}` placeholder
 
 ### Performance Issues
-1. Increase `OllamaChat.SentimentSaveInterval` to reduce database writes
-2. Consider reducing `OllamaChat.SentimentAdjustmentStrength` for fewer LLM calls
+1. Increase `LMStudioChat.SentimentSaveInterval` to reduce database writes
+2. Consider reducing `LMStudioChat.SentimentAdjustmentStrength` for fewer LLM calls
 3. Monitor your LLM server load
 
 ### Database Issues
@@ -185,14 +185,14 @@ The system provides several admin commands for managing sentiment data:
 ## Technical Implementation Details
 
 ### Files Added/Modified
-- `mod-ollama-chat_sentiment.h` - Sentiment system header
-- `mod-ollama-chat_sentiment.cpp` - Sentiment system implementation  
-- `mod-ollama-chat_config.h` - Added sentiment configuration variables
-- `mod-ollama-chat_config.cpp` - Added sentiment config loading
-- `mod-ollama-chat_handler.cpp` - Integrated sentiment into chat processing
-- `mod-ollama-chat_events.cpp` - Integrated sentiment into event system
-- `mod-ollama-chat_command.h/.cpp` - Added sentiment admin commands
-- `mod-ollama-chat_random.cpp` - Added sentiment periodic saving
+- `LMStudioChatSentiment.h` - Sentiment system header
+- `LMStudioChatSentiment.cpp` - Sentiment system implementation  
+- `LMStudioChatConfig.h` - Added sentiment configuration variables
+- `LMStudioChatConfig.cpp` - Added sentiment config loading
+- `LMStudioChatHandler.cpp` - Integrated sentiment into chat processing
+- `LMStudioChatEvents.cpp` - Integrated sentiment into event system
+- `LMStudioChatCommand.h/.cpp` - Added sentiment admin commands
+- `LMStudioChatRandom.cpp` - Added sentiment periodic saving
 - `2025_07_25_sentiment_tracking.sql` - Database schema
 
 ### Thread Safety
