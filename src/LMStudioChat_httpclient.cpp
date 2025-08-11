@@ -1,5 +1,5 @@
-#include "mod-ollama-chat_httpclient.h"
-#include "mod-ollama-chat_config.h"
+#include "LMStudioChat_httpclient.h"
+#include "LMStudioChat_config.h"
 
 // Include cpp-httplib for HTTP functionality
 #include <httplib.h>
@@ -9,17 +9,17 @@
 #include <regex>
 #include <memory>
 
-OllamaHttpClient::OllamaHttpClient()
+LMStudioHttpClient::LMStudioHttpClient()
     : m_timeout(120), m_available(true)
 {
     // Default 120 second timeout
 }
 
-OllamaHttpClient::~OllamaHttpClient()
+LMStudioHttpClient::~LMStudioHttpClient()
 {
 }
 
-std::string OllamaHttpClient::Post(const std::string& url, const std::string& jsonData)
+std::string LMStudioHttpClient::Post(const std::string& url, const std::string& jsonData)
 {
     try 
     {
@@ -29,13 +29,13 @@ std::string OllamaHttpClient::Post(const std::string& url, const std::string& js
         
         if (!std::regex_match(url, match, urlRegex))
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Invalid URL format: {}", url);
+            LOG_INFO("server.loading", "[LMStudio Chat] Invalid URL format: {}", url);
             return "";
         }
         
         std::string protocol = match[1].str();
         std::string host = match[2].str();
-        int port = 11434;  // Default Ollama port
+        int port = 8080;  // Default OpenAI-compatible port
         if (match[3].matched)
         {
             port = std::stoi(match[3].str());
@@ -46,14 +46,14 @@ std::string OllamaHttpClient::Post(const std::string& url, const std::string& js
         }
         else if (protocol == "http")
         {
-            port = 11434;  // Ollama default port for HTTP
+            port = 8080;  // OpenAI-compatible default port for HTTP
         }
         
         std::string path = match[4].matched ? match[4].str() : "/";
         
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] HTTP Request - Protocol: {}, Host: {}, Port: {}, Path: {}", 
+            LOG_INFO("server.loading", "[LMStudio Chat] HTTP Request - Protocol: {}, Host: {}, Port: {}, Path: {}", 
                 protocol, host, port, path);
         }
         
@@ -70,13 +70,13 @@ std::string OllamaHttpClient::Post(const std::string& url, const std::string& js
             sslClient.set_write_timeout(m_timeout);
             
             if(g_DebugEnabled) {
-                LOG_INFO("server.loading", "[Ollama Chat] Using SSL client for HTTPS connection");
+                LOG_INFO("server.loading", "[LMStudio Chat] Using SSL client for HTTPS connection");
             }
             
             // Set headers (with ngrok-specific headers)
             httplib::Headers headers = {
                 {"Content-Type", "application/json"},
-                {"User-Agent", "AzerothCore-OllamaChat/1.0"},
+                {"User-Agent", "AzerothCore-LMStudioChat/1.0"},
                 {"Accept", "application/json"}
             };
             
@@ -84,16 +84,16 @@ std::string OllamaHttpClient::Post(const std::string& url, const std::string& js
             if (host.find("ngrok") != std::string::npos || host.find("ngrok-free.app") != std::string::npos) {
                 headers.emplace("ngrok-skip-browser-warning", "true");
                 if(g_DebugEnabled) {
-                    LOG_INFO("server.loading", "[Ollama Chat] Added ngrok bypass header");
+                    LOG_INFO("server.loading", "[LMStudio Chat] Added ngrok bypass header");
                 }
             }
             
             // Make POST request with SSL client
             response = sslClient.Post(path, headers, jsonData, "application/json");
 #else
-            LOG_ERROR("server.loading", "[Ollama Chat] HTTPS requested but SSL support not available.");
-            LOG_ERROR("server.loading", "[Ollama Chat] Please rebuild with OpenSSL support enabled.");
-            LOG_ERROR("server.loading", "[Ollama Chat] See CMake output for OpenSSL installation instructions.");
+            LOG_ERROR("server.loading", "[LMStudio Chat] HTTPS requested but SSL support not available.");
+            LOG_ERROR("server.loading", "[LMStudio Chat] Please rebuild with OpenSSL support enabled.");
+            LOG_ERROR("server.loading", "[LMStudio Chat] See CMake output for OpenSSL installation instructions.");
             return "";
 #endif
         } else {
@@ -103,13 +103,13 @@ std::string OllamaHttpClient::Post(const std::string& url, const std::string& js
             client.set_write_timeout(m_timeout);
             
             if(g_DebugEnabled) {
-                LOG_INFO("server.loading", "[Ollama Chat] Using standard HTTP client");
+                LOG_INFO("server.loading", "[LMStudio Chat] Using standard HTTP client");
             }
             
             // Set headers (with ngrok-specific headers)
             httplib::Headers headers = {
                 {"Content-Type", "application/json"},
-                {"User-Agent", "AzerothCore-OllamaChat/1.0"},
+                {"User-Agent", "AzerothCore-LMStudioChat/1.0"},
                 {"Accept", "application/json"}
             };
             
@@ -117,7 +117,7 @@ std::string OllamaHttpClient::Post(const std::string& url, const std::string& js
             if (host.find("ngrok") != std::string::npos || host.find("ngrok-free.app") != std::string::npos) {
                 headers.emplace("ngrok-skip-browser-warning", "true");
                 if(g_DebugEnabled) {
-                    LOG_INFO("server.loading", "[Ollama Chat] Added ngrok bypass header");
+                    LOG_INFO("server.loading", "[LMStudio Chat] Added ngrok bypass header");
                 }
             }
             
@@ -127,41 +127,41 @@ std::string OllamaHttpClient::Post(const std::string& url, const std::string& js
         
         if (!response)
         {
-            LOG_ERROR("server.loading", "[Ollama Chat] HTTP request failed - no response from {}:{}{}", host, port, path);
+            LOG_ERROR("server.loading", "[LMStudio Chat] HTTP request failed - no response from {}:{}{}", host, port, path);
             return "";
         }
         
         if (response->status != 200)
         {
-            LOG_ERROR("server.loading", "[Ollama Chat] HTTP request failed with status: {} for {}:{}{}", 
+            LOG_ERROR("server.loading", "[LMStudio Chat] HTTP request failed with status: {} for {}:{}{}", 
                 response->status, host, port, path);
             if(g_DebugEnabled)
             {
-                LOG_INFO("server.loading", "[Ollama Chat] Response body: {}", response->body);
+                LOG_INFO("server.loading", "[LMStudio Chat] Response body: {}", response->body);
             }
             return "";
         }
         
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] HTTP request successful, response length: {}", response->body.length());
+            LOG_INFO("server.loading", "[LMStudio Chat] HTTP request successful, response length: {}", response->body.length());
         }
         
         return response->body;
     }
     catch (const std::exception& e)
     {
-        LOG_ERROR("server.loading", "[Ollama Chat] HTTP client exception: {}", e.what());
+        LOG_ERROR("server.loading", "[LMStudio Chat] HTTP client exception: {}", e.what());
         return "";
     }
 }
 
-void OllamaHttpClient::SetTimeout(int seconds)
+void LMStudioHttpClient::SetTimeout(int seconds)
 {
     m_timeout = seconds;
 }
 
-bool OllamaHttpClient::IsAvailable() const
+bool LMStudioHttpClient::IsAvailable() const
 {
     return m_available;
 }
