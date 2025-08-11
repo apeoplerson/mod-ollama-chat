@@ -1,3 +1,7 @@
+#include "CellImpl.h"
+#include "GridNotifiers.h"
+#include "GridNotifiersImpl.h"
+#include "ObjectAccessor.h"
 #include "LMStudioChat_random.h"
 #include "LMStudioChat_config.h"
 #include "LMStudioChat_handler.h"
@@ -12,11 +16,6 @@
 #include "LMStudioChat_api.h"
 #include "LMStudioChat_personality.h"
 #include "LMStudioChat_utilities.h"
-#include "GridNotifiersImpl.h"
-#include "CellImpl.h"
-#include "Map.h"
-#include "GridNotifiers.h"
-#include "Guild.h"
 #include <vector>
 #include <random>
 #include <thread>
@@ -137,8 +136,8 @@ void LMStudioBotRandomChatter::HandleRandomChatter()
             {
                 Unit* unitInRange = nullptr;
                 Acore::AnyUnitInObjectRangeCheck creatureCheck(bot, g_SayDistance);
-                Acore::UnitSearcher<Acore::AnyUnitInObjectRangeCheck> creatureSearcher(bot, unitInRange, creatureCheck);
-                Cell::VisitObjects(bot, creatureSearcher, g_SayDistance);
+                Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(bot, unitInRange, creatureCheck);
+                Cell::VisitObjects(bot, searcher, g_SayDistance);
                 if (unitInRange && unitInRange->GetTypeId() == TYPEID_UNIT)
                     if (!g_EnvCommentCreature.empty()) {
                         uint32_t idx = g_EnvCommentCreature.size() == 1 ? 0 : urand(0, g_EnvCommentCreature.size() - 1);
@@ -151,7 +150,7 @@ void LMStudioBotRandomChatter::HandleRandomChatter()
             {
                 Acore::GameObjectInRangeCheck goCheck(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), g_SayDistance);
                 GameObject* goInRange = nullptr;
-                Acore::GameObjectSearcher<Acore::GameObjectInRangeCheck> goSearcher(bot, goInRange, goCheck);
+                Acore::GameObjectListSearcher<Acore::GameObjectInRangeCheck> goSearcher(bot, goInRange, goCheck);
                 Cell::VisitObjects(bot, goSearcher, g_SayDistance);
                 if (goInRange)
                 {
@@ -335,7 +334,7 @@ void LMStudioBotRandomChatter::HandleRandomChatter()
             {
                 Unit* unit = nullptr;
                 Acore::AnyUnitInObjectRangeCheck check(bot, g_SayDistance);
-                Acore::UnitSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(bot, unit, check);
+                Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(bot, unit, check);
                 Cell::VisitObjects(bot, searcher, g_SayDistance);
 
                 if (unit && unit->GetTypeId() == TYPEID_UNIT)
@@ -356,7 +355,7 @@ void LMStudioBotRandomChatter::HandleRandomChatter()
             {
                 Unit* unit = nullptr;
                 Acore::AnyUnitInObjectRangeCheck check(bot, g_SayDistance);
-                Acore::UnitSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(bot, unit, check);
+                Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(bot, unit, check);
                 Cell::VisitObjects(bot, searcher, g_SayDistance);
 
                 if (unit && unit->GetTypeId() == TYPEID_UNIT)
