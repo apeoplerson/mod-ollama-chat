@@ -1,5 +1,7 @@
-#ifndef MOD_OLLAMA_CHAT_SENTIMENT_H
-#define MOD_OLLAMA_CHAT_SENTIMENT_H
+
+
+#ifndef LMSTUDIO_CHAT_SENTIMENT_H
+#define LMSTUDIO_CHAT_SENTIMENT_H
 
 #include <string>
 #include <cstdint>
@@ -63,4 +65,5 @@ void SaveBotPlayerSentimentsToDB();
  */
 void InitializeSentimentTracking();
 
-#endif // MOD_OLLAMA_CHAT_SENTIMENT_H
+#endif // LMSTUDIO_CHAT_SENTIMENT_H
+

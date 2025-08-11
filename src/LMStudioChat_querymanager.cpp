@@ -1,5 +1,5 @@
-#include "mod-ollama-chat_querymanager.h"
-#include "mod-ollama-chat_config.h"  // For g_MaxConcurrentQueries
+#include "LMStudioChat_querymanager.h"
+#include "LMStudioChat_config.h"  // For g_MaxConcurrentQueries
 #include <thread>
 
 // Constructor: initialize with the configuration value.
@@ -40,7 +40,7 @@ std::future<std::string> QueryManager::submitQuery(const std::string& prompt) {
 
 // Process the query by calling the API and then handling any queued tasks.
 void QueryManager::processQuery(const std::string& prompt, std::promise<std::string> promise) {
-    std::string result = QueryOllamaAPI(prompt);
+    std::string result = QueryLMStudioAPI(prompt);
     promise.set_value(result);
 
     {

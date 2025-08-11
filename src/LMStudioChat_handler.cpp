@@ -22,12 +22,12 @@
 #include <chrono>
 #include <ctime>
 #include "DatabaseEnv.h"
-#include "mod-ollama-chat_handler.h"
-#include "mod-ollama-chat_api.h"
-#include "mod-ollama-chat_personality.h"
-#include "mod-ollama-chat_config.h"
-#include "mod-ollama-chat-utilities.h"
-#include "mod-ollama-chat_sentiment.h"
+#include "LMStudioChat_handler.h"
+#include "LMStudioChat_api.h"
+#include "LMStudioChat_personality.h"
+#include "LMStudioChat_config.h"
+#include "LMStudioChat_utilities.h"
+#include "LMStudioChat_sentiment.h"
 #include <iomanip>
 #include "SpellMgr.h"
 #include "SpellInfo.h"
@@ -115,7 +115,7 @@ Channel* GetValidChannel(uint32_t teamId, const std::string& channelName, Player
     {
         if(g_DebugEnabled)
         {
-            LOG_ERROR("server.loading", "[Ollama Chat] Channel '{}' not found for team {}", channelName, teamId);
+            LOG_ERROR("server.loading", "[LMStudio Chat] Channel '{}' not found for team {}", channelName, teamId);
         }
     }
     return channel;
@@ -171,7 +171,7 @@ bool PlayerBotChatHandler::OnPlayerCanUseChat(Player* player, uint32_t type, uin
     if (!receiver || !player || player == receiver)
         return true;
     
-    // Check if sender is a bot - if so, don't trigger Ollama responses for bot-to-bot whispers
+    // Check if sender is a bot - if so, don't trigger LMStudio responses for bot-to-bot whispers
     PlayerbotAI* senderAI = sPlayerbotsMgr->GetPlayerbotAI(player);
     if (senderAI && senderAI->IsBotAI())
     {
@@ -184,7 +184,7 @@ bool PlayerBotChatHandler::OnPlayerCanUseChat(Player* player, uint32_t type, uin
     
     if (g_DebugEnabled)
     {
-        LOG_INFO("server.loading", "[Ollama Chat] OnPlayerCanUseChat called: player={}, type={}, receiver={}", 
+        LOG_INFO("server.loading", "[LMStudio Chat] OnPlayerCanUseChat called: player={}, type={}, receiver={}", 
                 player->GetName(), type, receiver ? receiver->GetName() : "null");
     }
     
@@ -208,7 +208,7 @@ void PlayerBotChatHandler::OnPlayerChat(Player* player, uint32_t type, uint32_t 
 
     if(g_DebugEnabled)
     {
-        LOG_INFO("server.loading", "[Ollama Chat] OnPlayerChat with receiver called: player={}, type={}, receiver={}", 
+        LOG_INFO("server.loading", "[LMStudio Chat] OnPlayerChat with receiver called: player={}, type={}, receiver={}", 
                 player->GetName(), type, receiver ? receiver->GetName() : "null");
     }
 
@@ -246,7 +246,7 @@ void SaveBotConversationHistoryToDB()
                 CharacterDatabase.EscapeString(escBotReply);
 
                 CharacterDatabase.Execute(SafeFormat(
-                    "INSERT IGNORE INTO mod_ollama_chat_history (bot_guid, player_guid, timestamp, player_message, bot_reply) "
+                    "INSERT IGNORE INTO LMStudioChat_history (bot_guid, player_guid, timestamp, player_message, bot_reply) "
                     "VALUES ({}, {}, NOW(), '{}', '{}')",
                     botGuid, playerGuid, escPlayerMsg, escBotReply));
             }
@@ -264,9 +264,9 @@ void SaveBotConversationHistoryToDB()
                     PARTITION BY bot_guid, player_guid
                     ORDER BY timestamp DESC
                 ) as rn
-            FROM mod_ollama_chat_history
+            FROM LMStudioChat_history
         )
-        DELETE FROM mod_ollama_chat_history
+        DELETE FROM LMStudioChat_history
         WHERE (bot_guid, player_guid, timestamp) IN (
             SELECT bot_guid, player_guid, timestamp
             FROM ranked_history
@@ -602,7 +602,7 @@ static std::string GenerateBotGameStateSnapshot(Player* bot)
 void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32_t /*lang*/, std::string& msg, ChatChannelSourceLocal sourceLocal, Channel* channel, Player* receiver)
 {
     if (player == nullptr) {
-        LOG_ERROR("server.loading", "[Ollama Chat] ProcessChat: player is null");
+        LOG_ERROR("server.loading", "[LMStudio Chat] ProcessChat: player is null");
         return;
     }
     if (msg.empty()) {
@@ -614,7 +614,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
     if(g_DebugEnabled)
     {
         LOG_INFO("server.loading",
-                "[Ollama Chat] Player {} sent msg: '{}' | Source: {} | Channel Name: {} | Channel ID: {} | Receiver: {}",
+                "[LMStudio Chat] Player {} sent msg: '{}' | Source: {} | Channel Name: {} | Channel ID: {} | Receiver: {}",
                 player->GetName(), msg, (int)sourceLocal, chanName, channelId, receiverName);
     }
 
@@ -625,7 +625,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
         {
             if(g_DebugEnabled)
             {
-                LOG_INFO("server.loading", "[Ollama Chat] Message starts with '{}' (blacklisted). Skipping bot responses.", blacklist);
+                LOG_INFO("server.loading", "[LMStudio Chat] Message starts with '{}' (blacklisted). Skipping bot responses.", blacklist);
             }
             return;
         }
@@ -641,11 +641,11 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
     {
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Processing whisper from {} to {}", 
+            LOG_INFO("server.loading", "[LMStudio Chat] Processing whisper from {} to {}", 
                     player->GetName(), receiver->GetName());
         }
         
-        // Skip bot-to-bot whispers to prevent Ollama responses
+        // Skip bot-to-bot whispers to prevent LMStudio responses
         if (senderIsBot)
         {
             return;
@@ -658,12 +658,12 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
             eligibleBots.push_back(receiver);
             if(g_DebugEnabled)
             {
-                LOG_INFO("server.loading", "[Ollama Chat] Found eligible bot {} for whisper", receiver->GetName());
+                LOG_INFO("server.loading", "[LMStudio Chat] Found eligible bot {} for whisper", receiver->GetName());
             }
         }
         else if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Whisper target {} is not a bot or has no AI", receiver->GetName());
+            LOG_INFO("server.loading", "[LMStudio Chat] Whisper target {} is not a bot or has no AI", receiver->GetName());
         }
     }
     else if (channel != nullptr)
@@ -671,7 +671,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
         // For channel chat, find all bots that are in the same channel instance
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Processing channel message in '{}' (ID: {})", 
+            LOG_INFO("server.loading", "[LMStudio Chat] Processing channel message in '{}' (ID: {})", 
                     channel->GetName(), channel->GetChannelId());
         }
         
@@ -680,7 +680,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
         {
             if(g_DebugEnabled)
             {
-                LOG_ERROR("server.loading", "[Ollama Chat] Channel is null, cannot process channel message");
+                LOG_ERROR("server.loading", "[LMStudio Chat] Channel is null, cannot process channel message");
             }
             return;
         }
@@ -717,7 +717,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 {
                     if(g_DebugEnabled)
                     {
-                        //LOG_ERROR("server.loading", "[Ollama Chat] Bot {} FAILED zone check - Bot zone: {}, Player zone: {}, Channel: '{}'", candidate->GetName(), candidate->GetZoneId(), player->GetZoneId(), channel->GetName());
+                        //LOG_ERROR("server.loading", "[LMStudio Chat] Bot {} FAILED zone check - Bot zone: {}, Player zone: {}, Channel: '{}'", candidate->GetName(), candidate->GetZoneId(), player->GetZoneId(), channel->GetName());
                     }
                     continue; // SKIP this bot - wrong zone
                 }
@@ -731,7 +731,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 {
                     if(g_DebugEnabled)
                     {
-                        //LOG_ERROR("server.loading", "[Ollama Chat] Bot {} FAILED faction check - Bot: {}, Player: {}, Channel: '{}'", candidate->GetName(), (int)candidate->GetTeamId(), (int)player->GetTeamId(), channel->GetName());
+                        //LOG_ERROR("server.loading", "[LMStudio Chat] Bot {} FAILED faction check - Bot: {}, Player: {}, Channel: '{}'", candidate->GetName(), (int)candidate->GetTeamId(), (int)player->GetTeamId(), channel->GetName());
                     }
                     continue; // SKIP this bot - wrong faction
                 }
@@ -741,13 +741,13 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
             eligibleBots.push_back(candidate);
             if(g_DebugEnabled)
             {
-                // LOG_INFO("server.loading", "[Ollama Chat] VERIFIED eligible bot {} in channel '{}' - Distance: {:.2f}, Zone match: {}", candidate->GetName(), channel->GetName(), candidate->GetDistance(player), (candidate->GetZoneId() == player->GetZoneId()));
+                // LOG_INFO("server.loading", "[LMStudio Chat] VERIFIED eligible bot {} in channel '{}' - Distance: {:.2f}, Zone match: {}", candidate->GetName(), channel->GetName(), candidate->GetDistance(player), (candidate->GetZoneId() == player->GetZoneId()));
             }
         }
         
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Found {} bots in channel instance '{}'", 
+            LOG_INFO("server.loading", "[LMStudio Chat] Found {} bots in channel instance '{}'", 
                     eligibleBots.size(), channel->GetName());
         }
     }
@@ -825,7 +825,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 finalCandidates.push_back(whisperBot);
                 if(g_DebugEnabled)
                 {
-                    LOG_INFO("server.loading", "[Ollama Chat] Whisper: Bot {} selected to respond", whisperBot->GetName());
+                    LOG_INFO("server.loading", "[LMStudio Chat] Whisper: Bot {} selected to respond", whisperBot->GetName());
                 }
             }
         }
@@ -883,7 +883,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
     {
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] No eligible bots found to respond to message '{}'. "
+            LOG_INFO("server.loading", "[LMStudio Chat] No eligible bots found to respond to message '{}'. "
                     "Source: {}, Eligible bots: {}, Candidate bots: {}, Combat disabled: {}",
                     msg, ChatChannelSourceLocalStr[sourceLocal], eligibleBots.size(), 
                     candidateBots.size(), g_DisableRepliesInCombat);
@@ -907,7 +907,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
         float distance = player->GetDistance(bot);
         if(g_DebugEnabled)
         {
-            LOG_INFO("server.loading", "[Ollama Chat] Bot {} (distance: {}) is set to respond.", bot->GetName(), distance);
+            LOG_INFO("server.loading", "[LMStudio Chat] Bot {} (distance: {}) is set to respond.", bot->GetName(), distance);
         }
         if (bot == nullptr) {
             continue;
@@ -932,7 +932,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 {
                     if(g_DebugEnabled)
                     {
-                        LOG_ERROR("server.loading", "[Ollama Chat] Failed to reacquire bot from GUID {}", botGuid);
+                        LOG_ERROR("server.loading", "[LMStudio Chat] Failed to reacquire bot from GUID {}", botGuid);
                     }
                     return;
                 }
@@ -940,7 +940,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 {
                     if(g_DebugEnabled)
                     {
-                        LOG_ERROR("server.loading", "[Ollama Chat] Failed to reacquire sender from GUID {}", senderGuid);
+                        LOG_ERROR("server.loading", "[LMStudio Chat] Failed to reacquire sender from GUID {}", senderGuid);
                     }
                     return;
                 }
@@ -948,7 +948,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 {
                     if(g_DebugEnabled)
                     {
-                        LOG_ERROR("server.loading", "[Ollama Chat] Bot {} received empty response from Ollama API.", botPtr->GetName());
+                        LOG_ERROR("server.loading", "[LMStudio Chat] Bot {} received empty response from LMStudio API.", botPtr->GetName());
                     }
                     return;
                 }
@@ -957,7 +957,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 {
                     if(g_DebugEnabled)
                     {
-                        LOG_ERROR("server.loading", "[Ollama Chat] No PlayerbotAI found for bot {}", botPtr->GetName());
+                        LOG_ERROR("server.loading", "[LMStudio Chat] No PlayerbotAI found for bot {}", botPtr->GetName());
                     }
                     return;
                 }
@@ -973,7 +973,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                         {
                             if(g_DebugEnabled)
                             {
-                                LOG_INFO("server.loading", "[Ollama Chat] Bot {} found channel '{}' (ID: {}), checking membership...", 
+                                LOG_INFO("server.loading", "[LMStudio Chat] Bot {} found channel '{}' (ID: {}), checking membership...", 
                                         botPtr->GetName(), channelName, targetChannel->GetChannelId());
                             }
                             
@@ -981,13 +981,13 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                             {
                                 if(g_DebugEnabled)
                                 {
-                                    LOG_INFO("server.loading", "[Ollama Chat] Bot {} is confirmed in channel '{}', sending message...", 
+                                    LOG_INFO("server.loading", "[LMStudio Chat] Bot {} is confirmed in channel '{}', sending message...", 
                                             botPtr->GetName(), channelName);
                                 }
                                 targetChannel->Say(botPtr->GetGUID(), response, LANG_UNIVERSAL);
                                 if(g_DebugEnabled)
                                 {
-                                    LOG_INFO("server.loading", "[Ollama Chat] Bot {} responded in channel {}: {}", 
+                                    LOG_INFO("server.loading", "[LMStudio Chat] Bot {} responded in channel {}: {}", 
                                             botPtr->GetName(), channelName, response);
                                 }
                             }
@@ -995,7 +995,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                             {
                                 if(g_DebugEnabled)
                                 {
-                                    LOG_ERROR("server.loading", "[Ollama Chat] Bot {} NOT in channel '{}' according to IsInChannel check", 
+                                    LOG_ERROR("server.loading", "[LMStudio Chat] Bot {} NOT in channel '{}' according to IsInChannel check", 
                                                 botPtr->GetName(), channelName);
                                 }
                                 // Fallback to normal bot speech
@@ -1006,7 +1006,7 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                         {
                             if(g_DebugEnabled)
                             {
-                                LOG_ERROR("server.loading", "[Ollama Chat] Bot {} cannot find channel '{}' (ID: {}) for team {}", 
+                                LOG_ERROR("server.loading", "[LMStudio Chat] Bot {} cannot find channel '{}' (ID: {}) for team {}", 
                                          botPtr->GetName(), channelName, channelId, (int)botPtr->GetTeamId());
                             }
                             // Fallback to normal bot speech
@@ -1044,14 +1044,14 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                                 {
                                     if(g_DebugEnabled)
                                     {
-                                        LOG_INFO("server.loading", "[Ollama Chat] Bot {} whispering response '{}' to {}", 
+                                        LOG_INFO("server.loading", "[LMStudio Chat] Bot {} whispering response '{}' to {}", 
                                                 botPtr->GetName(), response, originalSender->GetName());
                                     }
                                     botAI->Whisper(response, originalSender->GetName());
                                 }
                                 else if(g_DebugEnabled)
                                 {
-                                    LOG_ERROR("server.loading", "[Ollama Chat] Cannot whisper response - original sender not found for GUID {}", senderGuid);
+                                    LOG_ERROR("server.loading", "[LMStudio Chat] Cannot whisper response - original sender not found for GUID {}", senderGuid);
                                 }
                             }
                             break;
@@ -1068,14 +1068,14 @@ void PlayerBotChatHandler::ProcessChat(Player* player, uint32_t /*type*/, uint32
                 float respDistance = senderPtr->GetDistance(botPtr);
                 if(g_DebugEnabled)
                 {
-                    LOG_INFO("server.loading", "[Ollama Chat] Bot {} (distance: {}) responded: {}", botPtr->GetName(), respDistance, response);
+                    LOG_INFO("server.loading", "[LMStudio Chat] Bot {} (distance: {}) responded: {}", botPtr->GetName(), respDistance, response);
                 }
             }
             catch (const std::exception& ex)
             {
                 if(g_DebugEnabled)
                 {
-                    LOG_ERROR("server.loading", "[Ollama Chat] Exception in bot response thread: {}", ex.what());
+                    LOG_ERROR("server.loading", "[LMStudio Chat] Exception in bot response thread: {}", ex.what());
                 }
             }
         }).detach();
@@ -1115,7 +1115,7 @@ static bool IsBotEligibleForChatChannelLocal(Player* bot, Player* player, ChatCh
         {
             if(g_DebugEnabled)
             {
-                LOG_ERROR("server.loading", "[Ollama Chat] IsBotEligibleForChatChannelLocal: Channel is null");
+                LOG_ERROR("server.loading", "[LMStudio Chat] IsBotEligibleForChatChannelLocal: Channel is null");
             }
             return false;
         }
@@ -1135,7 +1135,7 @@ static bool IsBotEligibleForChatChannelLocal(Player* bot, Player* player, ChatCh
         {
             if(g_DebugEnabled)
             {
-                LOG_INFO("server.loading", "[Ollama Chat] IsBotEligibleForChatChannelLocal: Bot {} not in same channel instance '{}' - Bot team: {}, Channel ptr: {} vs {}", 
+                LOG_INFO("server.loading", "[LMStudio Chat] IsBotEligibleForChatChannelLocal: Bot {} not in same channel instance '{}' - Bot team: {}, Channel ptr: {} vs {}", 
                         bot->GetName(), channel->GetName(), (int)bot->GetTeamId(),
                         (void*)candidateChannel, (void*)channel);
             }
@@ -1152,7 +1152,7 @@ static bool IsBotEligibleForChatChannelLocal(Player* bot, Player* player, ChatCh
             {
                 if(g_DebugEnabled)
                 {
-                    LOG_INFO("server.loading", "[Ollama Chat] IsBotEligibleForChatChannelLocal: Bot {} different faction from player - Bot: {}, Player: {}, Channel: '{}'", bot->GetName(), (int)bot->GetTeamId(), (int)player->GetTeamId(), channel->GetName());
+                    LOG_INFO("server.loading", "[LMStudio Chat] IsBotEligibleForChatChannelLocal: Bot {} different faction from player - Bot: {}, Player: {}, Channel: '{}'", bot->GetName(), (int)bot->GetTeamId(), (int)player->GetTeamId(), channel->GetName());
                 }
                 return false;
             }
@@ -1208,7 +1208,7 @@ std::string GenerateBotPrompt(Player* bot, std::string playerMessage, Player* pl
         return "";
     }
     if (g_ChatPromptTemplate.empty()) {
-        LOG_ERROR("server.loading", "[Ollama Chat] GenerateBotPrompt: template is empty");
+        LOG_ERROR("server.loading", "[LMStudio Chat] GenerateBotPrompt: template is empty");
         return "";
     }
 

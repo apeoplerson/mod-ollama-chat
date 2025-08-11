@@ -1,15 +1,15 @@
-#ifndef OLLAMA_HTTP_CLIENT_H
-#define OLLAMA_HTTP_CLIENT_H
+#ifndef LMSTUDIO_HTTP_CLIENT_H
+#define LMSTUDIO_HTTP_CLIENT_H
 
 #include <string>
 
-class OllamaHttpClient
+class LMStudioHttpClient
 {
 public:
-    OllamaHttpClient();
-    ~OllamaHttpClient();
+    LMStudioHttpClient();
+    ~LMStudioHttpClient();
 
-    // Make HTTP POST request to Ollama API
+    // Make HTTP POST request to LMStudio API
     std::string Post(const std::string& url, const std::string& jsonData);
     
     // Set timeout for requests (in seconds)
@@ -23,4 +23,4 @@ private:
     bool m_available;
 };
 
-#endif // OLLAMA_HTTP_CLIENT_H
+#endif // LMSTUDIO_HTTP_CLIENT_H

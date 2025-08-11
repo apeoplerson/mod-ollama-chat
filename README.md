@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="./icon.png" alt="Ollama Chat Module" title="Ollama Chat Module Icon">
+  <img src="./icon.png" alt="LMStudio Chat Module" title="LMStudio Chat Module Icon">
 </p>
 
 
-# AzerothCore + Playerbots Module: mod-ollama-chat
+# AzerothCore + Playerbots Module: LMStudioChat
 
 
 > [!CAUTION]
@@ -13,12 +13,12 @@
 
 ## Overview
 
-***mod-ollama-chat*** is an AzerothCore module that enhances the Player Bots module by integrating external language model (LLM) support via the Ollama API. This module enables player bots to generate dynamic, in-character chat responses using advanced natural language processing locally on your computer (or remotely hosted). Bots are enriched with personality traits, random chatter triggers, and context-aware replies that mimic the language and lore of World of Warcraft.
+***LMStudioChat*** is an AzerothCore module that enhances the Player Bots module by integrating external language model (LLM) support via the LMStudio API. This module enables player bots to generate dynamic, in-character chat responses using advanced natural language processing locally on your computer (or remotely hosted). Bots are enriched with personality traits, random chatter triggers, and context-aware replies that mimic the language and lore of World of Warcraft.
 
 ## Features
 
-- **Ollama LLM Integration:**  
-  Bots generate chat responses by querying an external Ollama API endpoint. This enables natural and contextually appropriate in-game dialogue.
+- **LMStudio LLM Integration:**  
+  Bots generate chat responses by querying an external LMStudio API endpoint. This enables natural and contextually appropriate in-game dialogue.
 
 - **Player Bot Personalities:**  
   When enabled, each bot is assigned a personality type (e.g., Gamer, Roleplayer, Trickster) that modifies its chat style. Personalities influence prompt generation and result in varied, immersive responses.
@@ -47,10 +47,10 @@
   Player bots now comment on key in-game events such as quest completion, rare loot, deaths, PvP kills, leveling up, duels, learning spells, and achievements. Remarks are context-aware, immersive, and personality-driven, making the world feel much more alive.
 
 - **Think Mode Support:**  
-  Bots can leverage LLM models that have reasoning/think modes. Enable internal reasoning for models that support it by setting `OllamaChat.ThinkModeEnableForModule = 1` in **mod-ollama-chat.conf**. When enabled, the API request includes the `think` flag and the bot omits all `thinking` responses from its final reply.
+  Bots can leverage LLM models that have reasoning/think modes. Enable internal reasoning for models that support it by setting `LMStudioChat.ThinkModeEnableForModule = 1` in **LMStudioChat.conf**. When enabled, the API request includes the `think` flag and the bot omits all `thinking` responses from its final reply.
 
 - **Live Reload for Personalities and Settings:**  
-  Instantly reload all mod-ollama-chat configuration and personality packs in-game using the `.ollama reload` command with a GM level account or use `ollama reload` from the server console. No server restart required—updates to `.conf` or personality packs (`.sql` files) are applied immediately.
+  Instantly reload all LMStudioChat configuration and personality packs in-game using the `.lmstudio reload` command with a GM level account or use .lmstudio reload` from the server console. No server restart required—updates to `.conf` or personality packs (`.sql` files) are applied immediately.
 
 ## Installation
 
@@ -63,12 +63,12 @@
      - fmtlib (https://github.com/fmtlib/fmt) - For string formatting
      - nlohmann/json (https://github.com/nlohmann/json) - For JSON processing
      - cpp-httplib (https://github.com/yhirose/cpp-httplib) - Header-only HTTP library (included, no installation needed)
-     - Ollama LLM support – set up a local instance of the Ollama API server with the model of your choice. More details at https://ollama.com
+     - LMStudio LLM support – set up a local instance of the LMStudio API server with the model of your choice. More details at https://lmstudio.com
 
 2. **Clone the Module:**
    ```bash
    cd /path/to/azerothcore/modules
-   git clone https://github.com/DustinHendrickson/mod-ollama-chat.git
+   git clone https://github.com/DustinHendrickson/LMStudioChat.git
    ```
 
 3. **Recompile AzerothCore:**
@@ -82,7 +82,7 @@
 4. **Configuration:**
    Copy the default configuration file to your server configuration directory and change to match your setup (if not already done):
    ```bash
-   cp /path/to/azerothcore/modules/mod-ollama-chat/mod-ollama-chat.conf.dist /path/to/azerothcore/etc/config/mod-ollama-chat.conf
+   cp /path/to/azerothcore/modules/LMStudioChat/LMStudioChat.conf.dist /path/to/azerothcore/etc/config/LMStudioChat.conf
    ```
 
 5. **Restart the Server:**
@@ -92,7 +92,7 @@
 
 ## Configuration Options
 
-> For a complete list of all available configuration options with comments and defaults, see `mod-ollama-chat.conf.dist` included in this repository.
+> For a complete list of all available configuration options with comments and defaults, see `LMStudioChat.conf.dist` included in this repository.
 
 ## How It Works
 
@@ -106,7 +106,7 @@
    For each reply, a prompt is assembled by combining configurable templates with live in-game context: bot/player class, race, gender, role/spec, faction, guild, level, zone, gold, group, environment info, personality, and if enabled, recent chat history between that player and the bot.
 
 4. **LLM Request**  
-   The prompt is sent to the Ollama API using the configured model and parameters. All LLM requests run asynchronously, ensuring no lag or blocking of the server.
+   The prompt is sent to the LMStudio API using the configured model and parameters. All LLM requests run asynchronously, ensuring no lag or blocking of the server.
 
 5. **Response Routing**  
    Bot responses are routed back through the appropriate chat channel in game, whether it’s say, yell, party or general.
@@ -118,24 +118,24 @@
    In addition to responding to direct chat, bots will occasionally generate random environment-aware lines when real players are nearby, and will also react to key in-game events (e.g., PvP/PvE kills, loot, deaths, quests, duels, level-ups, achievements, using objects) using context-specific templates and personalities.
 
 8. **Live Reloading**  
-   You can hot-reload the module config and personality packs in-game using the `.ollama reload` GM command or from the server console. All changes take effect immediately without requiring a restart.
+   You can hot-reload the module config and personality packs in-game using the `.lmstudio reload` GM command or from the server console. All changes take effect immediately without requiring a restart.
 
 9. **Fully Configurable**  
-   All settings—reply logic, distances, frequencies, blacklist, prompt templates, chat history, personalities, random/event chatter, LLM params, and more—are controlled via `mod-ollama-chat.conf` and can be adjusted and reloaded live at any time.
+   All settings—reply logic, distances, frequencies, blacklist, prompt templates, chat history, personalities, random/event chatter, LLM params, and more—are controlled via `LMStudioChat.conf` and can be adjusted and reloaded live at any time.
 
 ## Personality Packs
 
-`mod-ollama-chat` supports Personality Packs, which are collections of personality templates that define how bots roleplay and interact in-game.
+`LMStudioChat` supports Personality Packs, which are collections of personality templates that define how bots roleplay and interact in-game.
 
 - To use a Personality Pack, download or create a `.sql` file named in the format `YYYY_MM_DD_personality_pack_NAME.sql`.
 
-- Place the `.sql` file in `modules/mod-ollama-chat/data/sql/characters/updates/`.
+- Place the `.sql` file in `modules/LMStudioChat/data/sql/characters/updates/`.
 
 - The module will automatically detect and apply any new Personality Packs when the server starts or updates—no manual SQL import required.
 
 Want to create your own pack or download packs made by the community?  
 
-Visit the [Personality Packs Discussion Board](https://github.com/DustinHendrickson/mod-ollama-chat/discussions)
+Visit the [Personality Packs Discussion Board](https://github.com/DustinHendrickson/LMStudioChat/discussions)
 
 ## Debugging
 
